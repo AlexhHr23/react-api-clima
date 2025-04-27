@@ -2,6 +2,7 @@ import axios from "axios";
 import { z } from 'zod'
 // import { object, string, number, InferOutput, parse} from 'valibot';
 import { SearchType } from "../types";
+import { useMemo, useState } from "react";
 
 
 //Type Guard o assertions
@@ -26,7 +27,7 @@ const Weather = z.object({
     })
 })
 
-type Weather = z.infer<typeof Weather>
+export type Weather = z.infer<typeof Weather>
 
 //Valibot
 // const WeatherSchema = object({
@@ -42,7 +43,17 @@ type Weather = z.infer<typeof Weather>
 
 export const useWeather = () => {
 
+    const [weather, setWeather] = useState<Weather>({
+        name: '',
+        main: {
+            temp: 0,
+            temp_max: 0,
+            temp_min: 0,
+        }
+    })
+
     const fetchWeather = async (search: SearchType) => {
+
         try {
             const appId = import.meta.env.VITE_API_KEY;
             const geoUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${search.city},${search.country}&appid=${appId}`
@@ -55,13 +66,10 @@ export const useWeather = () => {
             const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${appId}`
 
             //Zod
-            const {data: weatherResponse} = await axios(weatherUrl)
+            const { data: weatherResponse } = await axios(weatherUrl)
             const result = Weather.safeParse(weatherResponse)
-            if(result.success) {
-                console.log(result.data.name);
-                console.log(result.data.main.temp);
-            } else{
-                console.log('Respuesta mal formada');
+            if (result.success) {
+                setWeather(result.data)
             }
 
             //Castear type
@@ -90,7 +98,11 @@ export const useWeather = () => {
         }
     }
 
+    const hasWeatherData  = useMemo(() =>  weather.name, [weather])
+
     return {
-        fetchWeather
+        weather,
+        fetchWeather,
+        hasWeatherData
     }
 }
